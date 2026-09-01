@@ -1,0 +1,32 @@
+/* ==========================================================================
+   views/planner.css — filtri, righe task, priorità e calendario mensile
+   ========================================================================== */
+
+/* ---------- toolbar filtri ---------- */
+.planner-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+.planner-toolbar select{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;}
+
+/* ---------- task ---------- */
+.task-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:9px;}
+.task-row.done{opacity:.55;}
+.task-row.done .t{text-decoration:line-through;}
+.task-row .check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;}
+.task-row .check.on{background:var(--forest);border-color:var(--forest);color:#fff;font-size:12px;}
+.task-row .t{font-weight:600;font-size:14px;flex:1;}
+.task-row .meta{display:flex;gap:8px;align-items:center;}
+
+.prio{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;}
+.prio.alta{background:var(--coral-light);color:var(--coral);}
+.prio.media{background:#FCEFD9;color:var(--marigold-dark);}
+.prio.bassa{background:var(--forest-light);color:var(--forest-dark);}
+
+/* ---------- calendario ---------- */
+#calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-head{font-size:11px;font-weight:700;text-align:center;color:var(--muted);padding-bottom:6px;}
+.cal-cell{min-height:84px;border:1px solid var(--border);border-radius:9px;padding:6px;background:#fff;font-size:11.5px;position:relative;}
+.cal-cell.other{background:#F5F2E9;color:#B8B2A0;}
+.cal-cell.today{border-color:var(--marigold);border-width:2px;}
+.cal-cell .dnum{font-weight:700;font-size:12px;margin-bottom:4px;}
+.cal-tag{display:block;background:var(--forest-light);color:var(--forest-dark);border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+.cal-nav{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.cal-nav h3{margin:0;min-width:170px;text-align:center;}

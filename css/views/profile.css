@@ -1,0 +1,8 @@
+/* ==========================================================================
+   views/profile.css — layout della pagina profilo
+   (avatar-picker e color-picker vivono in components.css perché
+    sono condivisi con la modale di creazione corso)
+   ========================================================================== */
+
+.profile-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;}
+@media (max-width:880px){.profile-grid{grid-template-columns:1fr;}}

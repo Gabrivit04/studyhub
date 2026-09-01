@@ -1,0 +1,33 @@
+/* ==========================================================================
+   auth.css — schermata di accesso, registrazione e recupero password
+   ========================================================================== */
+
+#auth-view{min-height:100%;display:grid;grid-template-columns:1.05fr 1fr;}
+@media (max-width:880px){#auth-view{grid-template-columns:1fr;}#auth-visual{display:none;}}
+
+/* ---------- pannello illustrativo ---------- */
+#auth-visual{
+  background:
+    linear-gradient(180deg, rgba(27,42,74,.94), rgba(27,42,74,.98)),
+    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,.05) 28px);
+  color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:56px;
+}
+#auth-visual .brand{display:flex;align-items:center;gap:10px;font-family:'Lora',serif;font-size:22px;font-weight:700;}
+#auth-visual .brand .mark{width:34px;height:34px;border-radius:9px;background:var(--marigold);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:18px;}
+#auth-visual .quote{font-family:'Lora',serif;font-size:30px;line-height:1.4;max-width:460px;}
+#auth-visual .quote em{color:var(--marigold);font-style:normal;}
+#auth-visual .stats{display:flex;gap:34px;}
+#auth-visual .stats div b{display:block;font-family:'IBM Plex Mono',monospace;font-size:26px;color:var(--marigold);}
+#auth-visual .stats div span{font-size:12.5px;color:#C7CEDD;}
+
+/* ---------- pannello form ---------- */
+#auth-panel{display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+.auth-box{width:100%;max-width:380px;}
+.auth-tabs{display:flex;background:#F1EDE1;border-radius:10px;padding:4px;margin-bottom:26px;}
+.auth-tabs button{flex:1;background:transparent;border:none;padding:9px;border-radius:8px;font-weight:600;font-size:13.5px;color:var(--muted);}
+.auth-tabs button.active{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+.auth-form{display:none;}
+.auth-form.active{display:block;}
+.auth-box h1{margin:0 0 6px;font-size:26px;}
+.auth-box p.sub{margin:0 0 24px;color:var(--muted);font-size:14px;}
+.link-btn{background:none;border:none;color:var(--forest);font-weight:600;font-size:13px;padding:0;text-decoration:underline;}

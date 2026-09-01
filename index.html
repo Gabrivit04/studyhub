@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyHub — Gestione intelligente dello studio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Fogli di stile: dal generale al particolare -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/auth.css">
+<link rel="stylesheet" href="css/views/dashboard.css">
+<link rel="stylesheet" href="css/views/courses.css">
+<link rel="stylesheet" href="css/views/planner.css">
+<link rel="stylesheet" href="css/views/timer.css">
+<link rel="stylesheet" href="css/views/profile.css">
+
+<!-- Chart.js: espone il globale `Chart` usato da js/views/charts.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div>Caricamento StudyHub…</div></div>
+<div id="toast-wrap"></div>
+
+<!-- ============ SCHERMATA DI AUTENTICAZIONE ============ -->
+<div id="auth-view" class="hidden">
+  <div id="auth-visual">
+    <div class="brand"><span class="mark">📚</span> StudyHub</div>
+    <div class="quote">Organizza corsi, scadenze e sessioni di studio in <em>un solo posto</em>, con il ritmo del metodo Pomodoro.</div>
+    <div class="stats">
+      <div><b>1</b><span>piattaforma</span></div>
+      <div><b>∞</b><span>corsi gestibili</span></div>
+      <div><b>25min</b><span>focus per sessione</span></div>
+    </div>
+  </div>
+
+  <div id="auth-panel">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button id="tab-login-btn" class="active" onclick="UI.switchAuthTab('login')">Accedi</button>
+        <button id="tab-register-btn" onclick="UI.switchAuthTab('register')">Registrati</button>
+      </div>
+
+      <!-- LOGIN -->
+      <form id="form-login" class="auth-form active" onsubmit="return Auth.login(event)">
+        <h1>Bentornato</h1>
+        <p class="sub">Accedi al tuo spazio di studio.</p>
+        <div class="field"><label>Email</label><input type="email" id="login-email" required placeholder="mario.rossi@email.it"></div>
+        <div class="field"><label>Password</label><input type="password" id="login-password" required placeholder="••••••••"></div>
+        <div class="err" id="login-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Accedi</button>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" class="link-btn" onclick="UI.switchAuthTab('forgot')">Password dimenticata?</button>
+        </div>
+        <div class="divider"></div>
+        <button type="button" class="btn btn-ghost" style="width:100%" onclick="Auth.demoLogin()">Prova l'account demo</button>
+      </form>
+
+      <!-- REGISTRAZIONE -->
+      <form id="form-register" class="auth-form" onsubmit="return Auth.register(event)">
+        <h1>Crea il tuo account</h1>
+        <p class="sub">Inizia a organizzare il tuo studio in pochi secondi.</p>
+        <div class="field"><label>Nome e cognome</label><input type="text" id="reg-name" required placeholder="Mario Rossi"></div>
+        <div class="field"><label>Email</label><input type="email" id="reg-email" required placeholder="mario.rossi@email.it"></div>
+        <div class="field"><label>Password</label><input type="password" id="reg-password" required minlength="6" placeholder="Minimo 6 caratteri"></div>
+        <div class="err" id="register-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Crea account</button>
+      </form>
+
+      <!-- PASSWORD DIMENTICATA -->
+      <form id="form-forgot" class="auth-form" onsubmit="return Auth.forgot(event)">
+        <h1>Recupera password</h1>
+        <p class="sub">Inserisci l'email: genereremo un codice di reset temporaneo (demo, nessuna email reale viene inviata).</p>
+        <div class="field"><label>Email</label><input type="email" id="forgot-email" required></div>
+        <div class="err" id="forgot-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Genera codice di reset</button>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" class="link-btn" onclick="UI.switchAuthTab('login')">← Torna al login</button>
+        </div>
+      </form>
+
+      <!-- RESET CON CODICE -->
+      <form id="form-reset" class="auth-form" onsubmit="return Auth.resetPassword(event)">
+        <h1>Imposta nuova password</h1>
+        <p class="sub" id="reset-sub">Codice generato.</p>
+        <div class="field"><label>Codice di reset</label><input type="text" id="reset-code" required></div>
+        <div class="field"><label>Nuova password</label><input type="password" id="reset-password" required minlength="6"></div>
+        <div class="err" id="reset-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Aggiorna password</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GUSCIO DELL'APPLICAZIONE ============ -->
+<div id="app-shell" class="hidden">
+  <aside id="sidebar">
+    <div class="brand"><span class="mark">📚</span> StudyHub</div>
+    <nav>
+      <button class="nav-item" data-view="dashboard"><span class="ic">🗂️</span> Dashboard</button>
+      <button class="nav-item" data-view="courses"><span class="ic">🎓</span> Corsi</button>
+      <button class="nav-item" data-view="planner"><span class="ic">📅</span> Pianificazione</button>
+      <button class="nav-item" data-view="timer"><span class="ic">⏱️</span> Timer studio</button>
+      <button class="nav-item" data-view="profile"><span class="ic">👤</span> Profilo</button>
+    </nav>
+    <div class="foot">
+      <div class="user-chip">
+        <div class="avatar" id="sb-avatar"></div>
+        <div class="who"><b id="sb-name"></b><span id="sb-email"></span></div>
+      </div>
+      <button class="logout" onclick="Auth.logout()">Esci</button>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h2 id="tb-title">Dashboard</h2>
+        <div class="sub" id="tb-sub">Il tuo riepilogo di studio</div>
+      </div>
+      <div class="avatar" id="tb-avatar" style="width:38px;height:38px;font-size:18px;"></div>
+    </div>
+    <!-- Le viste vengono iniettate qui da js/views/render.js -->
+    <div id="content"></div>
+  </div>
+</div>
+
+<!-- ============ MODALE ============ -->
+<div id="modal-overlay" class="hidden">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+</body>
+</html>
