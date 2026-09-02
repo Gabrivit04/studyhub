@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyHub — Gestione intelligente dello studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1B2A4A;
+    --ink-2:#24365C;
+    --ink-3:#2E4270;
+    --paper:#FAF6EC;
+    --card:#FFFFFF;
+    --forest:#2F5233;
+    --forest-dark:#223D26;
+    --forest-light:#E7EEE3;
+    --marigold:#E8A33D;
+    --marigold-dark:#C4822A;
+    --coral:#C6533F;
+    --coral-light:#F7E4DF;
+    --text:#21262B;
+    --muted:#6B7280;
+    --border:#E4DFD3;
+    --shadow: 0 1px 2px rgba(27,42,74,.06), 0 6px 20px rgba(27,42,74,.08);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Lora',serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  a{color:inherit;}
+  ::selection{background:var(--marigold);color:var(--ink);}
+
+  /* ---------- utility ---------- */
+  .hidden{display:none !important;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 18px;border-radius:10px;border:1px solid transparent;
+    font-weight:600;font-size:14px;transition:transform .12s ease, box-shadow .12s ease, background .15s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--forest);color:#fff;}
+  .btn-primary:hover{background:var(--forest-dark);}
+  .btn-accent{background:var(--marigold);color:var(--ink);}
+  .btn-accent:hover{background:var(--marigold-dark);}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--border);}
+  .btn-ghost:hover{background:#F1EDE1;}
+  .btn-danger{background:var(--coral-light);color:var(--coral);}
+  .btn-danger:hover{background:#f0cec6;}
+  .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+  .btn-icon{width:36px;height:36px;padding:0;border-radius:9px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .field label{font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  .field input[type=text],.field input[type=email],.field input[type=password],.field input[type=date],.field input[type=number],.field select,.field textarea{
+    padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14.5px;background:#fff;color:var(--text);outline:none;transition:border-color .15s;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--forest);}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .muted{color:var(--muted);}
+  .err{color:var(--coral);font-size:13px;min-height:16px;}
+  .divider{height:1px;background:var(--border);margin:16px 0;}
+
+  /* focus visibility */
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
+    outline:2.5px solid var(--marigold);outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){*{animation-duration:0.001ms !important;transition-duration:0.001ms !important;}}
+
+  /* ---------- loading ---------- */
+  #loading{position:fixed;inset:0;background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999;}
+  #loading .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:var(--marigold);animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- toast ---------- */
+  #toast-wrap{position:fixed;top:18px;right:18px;z-index:900;display:flex;flex-direction:column;gap:10px;}
+  .toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow);max-width:320px;animation:slidein .18s ease;}
+  .toast.error{background:var(--coral);}
+  .toast.success{background:var(--forest);}
+  @keyframes slidein{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+  /* ---------- AUTH VIEW ---------- */
+  #auth-view{min-height:100%;display:grid;grid-template-columns:1.05fr 1fr;}
+  @media (max-width:880px){#auth-view{grid-template-columns:1fr;}#auth-visual{display:none;}}
+  #auth-visual{
+    background:
+      linear-gradient(180deg, rgba(27,42,74,.94), rgba(27,42,74,.98)),
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,.05) 28px);
+    color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:56px;
+  }
+  #auth-visual .brand{display:flex;align-items:center;gap:10px;font-family:'Lora',serif;font-size:22px;font-weight:700;}
+  #auth-visual .brand .mark{width:34px;height:34px;border-radius:9px;background:var(--marigold);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:18px;}
+  #auth-visual .quote{font-family:'Lora',serif;font-size:30px;line-height:1.4;max-width:460px;}
+  #auth-visual .quote em{color:var(--marigold);font-style:normal;}
+  #auth-visual .stats{display:flex;gap:34px;}
+  #auth-visual .stats div b{display:block;font-family:'IBM Plex Mono',monospace;font-size:26px;color:var(--marigold);}
+  #auth-visual .stats div span{font-size:12.5px;color:#C7CEDD;}
+
+  #auth-panel{display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+  .auth-box{width:100%;max-width:380px;}
+  .auth-tabs{display:flex;background:#F1EDE1;border-radius:10px;padding:4px;margin-bottom:26px;}
+  .auth-tabs button{flex:1;background:transparent;border:none;padding:9px;border-radius:8px;font-weight:600;font-size:13.5px;color:var(--muted);}
+  .auth-tabs button.active{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+  .auth-form{display:none;}
+  .auth-form.active{display:block;}
+  .auth-box h1{margin:0 0 6px;font-size:26px;}
+  .auth-box p.sub{margin:0 0 24px;color:var(--muted);font-size:14px;}
+  .link-btn{background:none;border:none;color:var(--forest);font-weight:600;font-size:13px;padding:0;text-decoration:underline;}
+
+  /* ---------- APP SHELL ---------- */
+  #app-shell{display:flex;min-height:100vh;}
+  #sidebar{
+    width:230px;flex-shrink:0;background:var(--ink);color:#fff;display:flex;flex-direction:column;padding:22px 0;position:sticky;top:0;height:100vh;
+  }
+  #sidebar .brand{display:flex;align-items:center;gap:10px;font-family:'Lora',serif;font-weight:700;font-size:19px;padding:0 22px 24px;}
+  #sidebar .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--marigold);display:flex;align-items:center;justify-content:center;color:var(--ink);}
+  #sidebar nav{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:12px;padding:11px 22px;color:#B9C2D6;font-weight:600;font-size:14px;
+    border-top-left-radius:20px;border-bottom-left-radius:20px;margin-left:10px;position:relative;background:transparent;border:none;text-align:left;
+  }
+  .nav-item .ic{font-size:16px;width:20px;text-align:center;}
+  .nav-item:hover{color:#fff;background:rgba(255,255,255,.06);}
+  .nav-item.active{background:var(--paper);color:var(--ink);}
+  #sidebar .foot{padding:14px 22px 0;border-top:1px solid rgba(255,255,255,.12);margin-top:10px;padding-top:16px;}
+  #sidebar .user-chip{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  #sidebar .user-chip .who b{display:block;font-size:13px;color:#fff;}
+  #sidebar .user-chip .who span{font-size:11.5px;color:#9AA6BE;}
+  #sidebar .logout{width:100%;background:rgba(255,255,255,.07);color:#fff;border:none;padding:8px;border-radius:8px;font-size:12.5px;font-weight:600;}
+  #sidebar .logout:hover{background:rgba(255,255,255,.14);}
+
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;padding:18px 32px;background:var(--paper);
+    position:sticky;top:0;z-index:5;border-bottom:1px solid var(--border);
+  }
+  #topbar h2{margin:0;font-size:21px;}
+  #topbar .sub{color:var(--muted);font-size:13px;margin-top:2px;}
+  #content{padding:28px 32px 60px;max-width:1180px;width:100%;margin:0 auto;}
+
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .section-head h3{margin:0;font-size:17px;}
+
+  /* ---------- DASHBOARD ---------- */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  @media (max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+  .kpi{padding:18px 18px;display:flex;flex-direction:column;gap:6px;}
+  .kpi .lbl{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .kpi .val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--ink);}
+  .kpi .delta{font-size:12px;color:var(--forest);font-weight:600;}
+
+  .dash-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:20px;}
+  @media (max-width:980px){.dash-grid{grid-template-columns:1fr;}}
+  .chart-card{padding:20px;}
+  .chart-card h4{margin:0 0 14px;font-size:14.5px;}
+  .streak-strip{display:flex;gap:6px;margin-top:10px;}
+  .streak-day{flex:1;height:34px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--muted);font-weight:700;}
+  .streak-day.active{background:var(--marigold);color:var(--ink);}
+
+  .deadline-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+  .deadline-row:last-child{border-bottom:none;}
+  .deadline-row .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+  .deadline-row .info{display:flex;align-items:center;gap:10px;}
+  .deadline-row .title{font-size:13.5px;font-weight:600;}
+  .deadline-row .meta{font-size:11.5px;color:var(--muted);}
+
+  /* ---------- COURSES ---------- */
+  .course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+  .course-card{padding:0;overflow:hidden;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease;}
+  .course-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(27,42,74,.14);}
+  .course-card .top{height:64px;display:flex;align-items:center;padding:0 16px;gap:10px;color:#fff;position:relative;}
+  .course-card .top .icon{font-size:26px;}
+  .course-card .top .name{font-family:'Lora',serif;font-weight:700;font-size:16px;}
+  .course-card .body{padding:14px 16px 16px;}
+  .course-card .body .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+  .course-card .members{display:flex;margin-top:8px;}
+  .course-card .members .m{width:24px;height:24px;border-radius:50%;background:var(--forest-light);color:var(--forest-dark);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;margin-left:-8px;}
+  .course-card .members .m:first-child{margin-left:0;}
+  .empty-state{padding:50px 20px;text-align:center;color:var(--muted);}
+  .empty-state .big{font-size:34px;margin-bottom:10px;}
+
+  /* ---------- COURSE DETAIL ---------- */
+  .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--forest);font-weight:600;font-size:13.5px;background:none;border:none;margin-bottom:14px;padding:0;}
+  .course-hero{border-radius:var(--radius);padding:26px 26px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:14px;}
+  .course-hero .left{display:flex;align-items:center;gap:14px;}
+  .course-hero .icon-lg{font-size:38px;}
+  .course-hero h2{margin:0;color:#fff;}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:18px;}
+  .tab-btn{background:none;border:none;padding:10px 4px;margin-right:20px;font-weight:600;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent;}
+  .tab-btn.active{color:var(--ink);border-color:var(--marigold);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#fff;}
+  .list-item .l{display:flex;align-items:center;gap:12px;}
+  .list-item .t{font-weight:600;font-size:14px;}
+  .list-item .m{font-size:12px;color:var(--muted);}
+
+  .chat-box{max-height:340px;overflow-y:auto;padding:6px 2px;margin-bottom:14px;}
+  .msg{display:flex;gap:10px;margin-bottom:14px;}
+  .msg .bubble{background:var(--forest-light);padding:9px 13px;border-radius:0 10px 10px 10px;font-size:13.5px;max-width:75%;}
+  .msg .author{font-size:11px;font-weight:700;color:var(--forest-dark);margin-bottom:2px;}
+  .msg .time{font-size:10px;color:var(--muted);margin-top:3px;}
+  .chat-input{display:flex;gap:8px;}
+  .chat-input input{flex:1;}
+
+  /* ---------- PLANNER ---------- */
+  .planner-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+  .planner-toolbar select{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;}
+  .task-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:9px;}
+  .task-row.done{opacity:.55;}
+  .task-row.done .t{text-decoration:line-through;}
+  .task-row .check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;}
+  .task-row .check.on{background:var(--forest);border-color:var(--forest);color:#fff;font-size:12px;}
+  .task-row .t{font-weight:600;font-size:14px;flex:1;}
+  .task-row .meta{display:flex;gap:8px;align-items:center;}
+  .prio{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;}
+  .prio.alta{background:var(--coral-light);color:var(--coral);}
+  .prio.media{background:#FCEFD9;color:var(--marigold-dark);}
+  .prio.bassa{background:var(--forest-light);color:var(--forest-dark);}
+
+  #calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-head{font-size:11px;font-weight:700;text-align:center;color:var(--muted);padding-bottom:6px;}
+  .cal-cell{min-height:84px;border:1px solid var(--border);border-radius:9px;padding:6px;background:#fff;font-size:11.5px;position:relative;}
+  .cal-cell.other{background:#F5F2E9;color:#B8B2A0;}
+  .cal-cell.today{border-color:var(--marigold);border-width:2px;}
+  .cal-cell .dnum{font-weight:700;font-size:12px;margin-bottom:4px;}
+  .cal-tag{display:block;background:var(--forest-light);color:var(--forest-dark);border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .cal-nav{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .cal-nav h3{margin:0;min-width:170px;text-align:center;}
+
+  /* ---------- TIMER ---------- */
+  .timer-wrap{display:flex;gap:28px;flex-wrap:wrap;}
+  .timer-card{padding:34px;display:flex;flex-direction:column;align-items:center;flex:1;min-width:300px;}
+  .ring-wrap{position:relative;width:260px;height:260px;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-track{fill:none;stroke:var(--border);stroke-width:10;}
+  .ring-prog{fill:none;stroke:var(--marigold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .3s linear;}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring-center .time{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:600;color:var(--ink);}
+  .ring-center .phase{font-size:12.5px;font-weight:700;color:var(--marigold-dark);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+  .timer-controls{display:flex;gap:10px;margin-top:24px;}
+  .timer-settings{flex:1;min-width:260px;padding:24px;}
+  .timer-settings h4{margin-top:0;}
+  .stat-mini{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px;}
+  .stat-mini:last-child{border-bottom:none;}
+  .stat-mini b{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- PROFILE ---------- */
+  .profile-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;}
+  @media (max-width:880px){.profile-grid{grid-template-columns:1fr;}}
+  .avatar-picker{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+  .avatar-opt{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;border:2px solid transparent;background:#F1EDE1;}
+  .avatar-opt.sel{border-color:var(--marigold);}
+  .color-picker{display:flex;gap:8px;}
+  .color-opt{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--border);cursor:pointer;}
+  .color-opt.sel{box-shadow:0 0 0 2.5px var(--ink);}
+
+  /* ---------- MODAL ---------- */
+  #modal-overlay{position:fixed;inset:0;background:rgba(27,42,74,.5);display:flex;align-items:center;justify-content:center;z-index:800;padding:20px;}
+  .modal{background:#fff;border-radius:var(--radius);padding:26px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow);}
+  .modal h3{margin-top:0;}
+  .modal-close{float:right;background:none;border:none;font-size:18px;color:var(--muted);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#D8D2C2;border-radius:8px;}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div>Caricamento StudyHub…</div></div>
+<div id="toast-wrap"></div>
+
+<!-- ============ AUTH VIEW ============ -->
+<div id="auth-view" class="hidden">
+  <div id="auth-visual">
+    <div class="brand"><span class="mark">📚</span> StudyHub</div>
+    <div class="quote">Organizza corsi, scadenze e sessioni di studio in <em>un solo posto</em>, con il ritmo del metodo Pomodoro.</div>
+    <div class="stats">
+      <div><b>1</b><span>piattaforma</span></div>
+      <div><b>∞</b><span>corsi gestibili</span></div>
+      <div><b>25min</b><span>focus per sessione</span></div>
+    </div>
+  </div>
+  <div id="auth-panel">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button id="tab-login-btn" class="active" onclick="UI.switchAuthTab('login')">Accedi</button>
+        <button id="tab-register-btn" onclick="UI.switchAuthTab('register')">Registrati</button>
+      </div>
+
+      <!-- LOGIN -->
+      <form id="form-login" class="auth-form active" onsubmit="return Auth.login(event)">
+        <h1>Bentornato</h1>
+        <p class="sub">Accedi al tuo spazio di studio.</p>
+        <div class="field"><label>Email</label><input type="email" id="login-email" required placeholder="mario.rossi@email.it"></div>
+        <div class="field"><label>Password</label><input type="password" id="login-password" required placeholder="••••••••"></div>
+        <div class="err" id="login-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Accedi</button>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" class="link-btn" onclick="UI.switchAuthTab('forgot')">Password dimenticata?</button>
+        </div>
+        <div class="divider"></div>
+        <button type="button" class="btn btn-ghost" style="width:100%" onclick="Auth.demoLogin()">Prova l'account demo</button>
+      </form>
+
+      <!-- REGISTER -->
+      <form id="form-register" class="auth-form" onsubmit="return Auth.register(event)">
+        <h1>Crea il tuo account</h1>
+        <p class="sub">Inizia a organizzare il tuo studio in pochi secondi.</p>
+        <div class="field"><label>Nome e cognome</label><input type="text" id="reg-name" required placeholder="Mario Rossi"></div>
+        <div class="field"><label>Email</label><input type="email" id="reg-email" required placeholder="mario.rossi@email.it"></div>
+        <div class="field"><label>Password</label><input type="password" id="reg-password" required minlength="6" placeholder="Minimo 6 caratteri"></div>
+        <div class="err" id="register-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Crea account</button>
+      </form>
+
+      <!-- FORGOT PASSWORD -->
+      <form id="form-forgot" class="auth-form" onsubmit="return Auth.forgot(event)">
+        <h1>Recupera password</h1>
+        <p class="sub">Inserisci l'email: genereremo un codice di reset temporaneo (demo, nessuna email reale viene inviata).</p>
+        <div class="field"><label>Email</label><input type="email" id="forgot-email" required></div>
+        <div class="err" id="forgot-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Genera codice di reset</button>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" class="link-btn" onclick="UI.switchAuthTab('login')">← Torna al login</button>
+        </div>
+      </form>
+
+      <!-- RESET WITH CODE -->
+      <form id="form-reset" class="auth-form" onsubmit="return Auth.resetPassword(event)">
+        <h1>Imposta nuova password</h1>
+        <p class="sub" id="reset-sub">Codice generato.</p>
+        <div class="field"><label>Codice di reset</label><input type="text" id="reset-code" required></div>
+        <div class="field"><label>Nuova password</label><input type="password" id="reset-password" required minlength="6"></div>
+        <div class="err" id="reset-err"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Aggiorna password</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app-shell" class="hidden">
+  <aside id="sidebar">
+    <div class="brand"><span class="mark">📚</span> StudyHub</div>
+    <nav>
+      <button class="nav-item" data-view="dashboard"><span class="ic">🗂️</span> Dashboard</button>
+      <button class="nav-item" data-view="courses"><span class="ic">🎓</span> Corsi</button>
+      <button class="nav-item" data-view="planner"><span class="ic">📅</span> Pianificazione</button>
+      <button class="nav-item" data-view="timer"><span class="ic">⏱️</span> Timer studio</button>
+      <button class="nav-item" data-view="profile"><span class="ic">👤</span> Profilo</button>
+    </nav>
+    <div class="foot">
+      <div class="user-chip">
+        <div class="avatar" id="sb-avatar"></div>
+        <div class="who"><b id="sb-name"></b><span id="sb-email"></span></div>
+      </div>
+      <button class="logout" onclick="Auth.logout()">Esci</button>
+    </div>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h2 id="tb-title">Dashboard</h2>
+        <div class="sub" id="tb-sub">Il tuo riepilogo di studio</div>
+      </div>
+      <div class="avatar" id="tb-avatar" style="width:38px;height:38px;font-size:18px;"></div>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div id="modal-overlay" class="hidden">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+/* ================= STORAGE LAYER =================
+   Usa localStorage del browser: i dati restano salvati sul
+   computer anche aprendo questo file localmente (senza Claude.ai). */
+const Store = {
+  mem:{},
+  prefix:'studyhub::',
+  async get(key){
+    try{
+      const raw = localStorage.getItem(this.prefix+key);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return this.mem[key] ?? null; }
+  },
+  async set(key,value){
+    this.mem[key]=value;
+    try{ localStorage.setItem(this.prefix+key, JSON.stringify(value)); }
+    catch(e){ console.warn('localStorage non disponibile, dati tenuti solo in memoria', e); }
+  }
+};
+
+/* ================= APP STATE ================= */
+const State = {
+  auth:{users:[], session:null},
+  data:null, // {courses, tasks, pomodoroSessions, pomodoroSettings}
+  currentUser:null,
+  view:'dashboard',
+  currentCourseId:null,
+  courseTab:'lessons',
+  calMonth: new Date().getMonth(),
+  calYear: new Date().getFullYear(),
+  plannerFilter:{course:'all', status:'all', sort:'due'},
+  timer:{ phase:'work', remaining:25*60, total:25*60, running:false, interval:null, sessionsDone:0, linkedCourse:'' }
+};
+
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+const AVATARS = ['🦉','🐧','🦊','🐢','🐝','🦁','🐼','🐬','🦄','🐨'];
+const COURSE_COLORS = ['#2F5233','#1B2A4A','#C6533F','#E8A33D','#5B6EE1','#8B5CF6','#0E7C7B'];
+const COURSE_ICONS = ['📘','🧮','🧪','💻','🌍','🎨','⚖️','🩺','📈','🎼','🏛️','🔬'];
+
+function toast(msg, type=''){
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+function closeModal(){ document.getElementById('modal-overlay').classList.add('hidden'); document.getElementById('modal-body').innerHTML=''; }
+function openModal(html){ document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-overlay').classList.remove('hidden'); }
+document.getElementById('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='modal-overlay') closeModal(); });
+
+/* ================= AUTH ================= */
+function simpleHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
+  return 'h'+h.toString(16);
+}
+function makeSession(userId){
+  const exp = Date.now() + 1000*60*60*24; // 24h "JWT"
+  const payload = {userId, exp, iat:Date.now()};
+  return { token: btoa(JSON.stringify(payload)), userId, exp };
+}
+function sessionValid(s){ return s && s.exp > Date.now(); }
+
+const Auth = {
+  async register(e){
+    e.preventDefault();
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim().toLowerCase();
+    const pass = document.getElementById('reg-password').value;
+    const errEl = document.getElementById('register-err');
+    errEl.textContent='';
+    if(State.auth.users.find(u=>u.email===email)){
+      errEl.textContent = 'Esiste già un account con questa email.'; return false;
+    }
+    const user = { id:uid(), name, email, passwordHash:simpleHash(pass), avatarEmoji:AVATARS[Math.floor(Math.random()*AVATARS.length)], avatarColor: COURSE_COLORS[Math.floor(Math.random()*COURSE_COLORS.length)], createdAt:Date.now() };
+    State.auth.users.push(user);
+    State.auth.session = makeSession(user.id);
+    await Store.set('studyhub-auth', State.auth);
+    await Boot.loginAs(user);
+    toast('Account creato — benvenuto su StudyHub!','success');
+    return false;
+  },
+  async login(e){
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const pass = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-err');
+    errEl.textContent='';
+    const user = State.auth.users.find(u=>u.email===email);
+    if(!user || user.passwordHash !== simpleHash(pass)){
+      errEl.textContent = 'Email o password non corrette.'; return false;
+    }
+    State.auth.session = makeSession(user.id);
+    await Store.set('studyhub-auth', State.auth);
+    await Boot.loginAs(user);
+    toast('Accesso effettuato','success');
+    return false;
+  },
+  async demoLogin(){
+    let user = State.auth.users.find(u=>u.email==='demo@studyhub.it');
+    if(!user){
+      user = { id:uid(), name:'Utente Demo', email:'demo@studyhub.it', passwordHash:simpleHash('demo123'), avatarEmoji:'🦉', avatarColor:'#2F5233', createdAt:Date.now() };
+      State.auth.users.push(user);
+      await Store.set('studyhub-auth', State.auth);
+    }
+    State.auth.session = makeSession(user.id);
+    await Store.set('studyhub-auth', State.auth);
+    await Boot.loginAs(user, true);
+    toast('Accesso demo effettuato','success');
+  },
+  async forgot(e){
+    e.preventDefault();
+    const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+    const errEl = document.getElementById('forgot-err');
+    const user = State.auth.users.find(u=>u.email===email);
+    if(!user){ errEl.textContent = 'Nessun account trovato con questa email.'; return false; }
+    const code = Math.random().toString(36).slice(2,8).toUpperCase();
+    user.resetCode = code;
+    user.resetExpires = Date.now() + 1000*60*15;
+    await Store.set('studyhub-auth', State.auth);
+    document.getElementById('reset-sub').innerHTML = `Codice generato per <b>${email}</b> (demo — in produzione arriverebbe via email): <span class="mono" style="background:#FCEFD9;padding:2px 8px;border-radius:6px;">${code}</span>`;
+    UI.switchAuthTab('reset');
+    State._resetEmail = email;
+    return false;
+  },
+  async resetPassword(e){
+    e.preventDefault();
+    const code = document.getElementById('reset-code').value.trim().toUpperCase();
+    const pass = document.getElementById('reset-password').value;
+    const errEl = document.getElementById('reset-err');
+    const user = State.auth.users.find(u=>u.email===State._resetEmail);
+    if(!user || user.resetCode !== code || Date.now() > user.resetExpires){
+      errEl.textContent = 'Codice non valido o scaduto.'; return false;
+    }
+    user.passwordHash = simpleHash(pass);
+    delete user.resetCode; delete user.resetExpires;
+    await Store.set('studyhub-auth', State.auth);
+    toast('Password aggiornata, effettua il login','success');
+    UI.switchAuthTab('login');
+    return false;
+  },
+  async logout(){
+    State.auth.session = null;
+    await Store.set('studyhub-auth', State.auth);
+    State.currentUser = null;
+    if(State.timer.interval) clearInterval(State.timer.interval);
+    document.getElementById('app-shell').classList.add('hidden');
+    document.getElementById('auth-view').classList.remove('hidden');
+    UI.switchAuthTab('login');
+  },
+  refresh(){
+    // simulate silent refresh-token renewal on activity
+    if(State.auth.session && sessionValid(State.auth.session)){
+      State.auth.session.exp = Date.now() + 1000*60*60*24;
+      Store.set('studyhub-auth', State.auth);
+    }
+  }
+};
+
+/* ================= UI: AUTH TABS ================= */
+const UI = {
+  switchAuthTab(which){
+    document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
+    document.getElementById('tab-login-btn').classList.remove('active');
+    document.getElementById('tab-register-btn').classList.remove('active');
+    if(which==='login'){ document.getElementById('form-login').classList.add('active'); document.getElementById('tab-login-btn').classList.add('active'); }
+    else if(which==='register'){ document.getElementById('form-register').classList.add('active'); document.getElementById('tab-register-btn').classList.add('active'); }
+    else if(which==='forgot'){ document.getElementById('form-forgot').classList.add('active'); }
+    else if(which==='reset'){ document.getElementById('form-reset').classList.add('active'); }
+  }
+};
+
+/* ================= BOOT / DATA LOAD ================= */
+const Boot = {
+  async init(){
+    State.auth = (await Store.get('studyhub-auth')) || {users:[], session:null};
+    if(State.auth.session && sessionValid(State.auth.session)){
+      const user = State.auth.users.find(u=>u.id===State.auth.session.userId);
+      if(user){ await this.loginAs(user); document.getElementById('loading').classList.add('hidden'); return; }
+    }
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('auth-view').classList.remove('hidden');
+  },
+  async loginAs(user, seedDemo){
+    State.currentUser = user;
+    let data = await Store.get('studyhub-data:'+user.id);
+    if(!data){
+      data = seedDemo ? seedDemoData() : { courses:[], tasks:[], pomodoroSessions:[], pomodoroSettings:{work:25,short:5,long:15,cycle:4} };
+      await Store.set('studyhub-data:'+user.id, data);
+    }
+    if(!data.pomodoroSettings) data.pomodoroSettings = {work:25,short:5,long:15,cycle:4};
+    State.data = data;
+    resetTimerFromSettings();
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('auth-view').classList.add('hidden');
+    document.getElementById('app-shell').classList.remove('hidden');
+    UI.renderShellUser();
+    Router.go('dashboard');
+  }
+};
+
+async function persist(){
+  if(!State.currentUser) return;
+  await Store.set('studyhub-data:'+State.currentUser.id, State.data);
+  Auth.refresh();
+}
+
+function seedDemoData(){
+  const c1 = { id:uid(), name:'Analisi Matematica 1', color:'#1B2A4A', icon:'🧮',
+    lessons:[{id:uid(),title:'Limiti e continuità',date:'2026-09-02'},{id:uid(),title:'Derivate',date:'2026-09-09'}],
+    materials:[{id:uid(),title:'Slide - Limiti',type:'link',url:'https://example.com/limiti.pdf'}],
+    members:[{id:uid(),name:'Giulia Bianchi',email:'giulia@studenti.it'}],
+    comments:[{id:uid(),author:'Giulia Bianchi',text:'Qualcuno ha gli appunti della lezione di giovedì?',ts:Date.now()-86400000}] };
+  const c2 = { id:uid(), name:'Basi di Dati', color:'#2F5233', icon:'💻',
+    lessons:[{id:uid(),title:'Modello relazionale',date:'2026-09-05'}],
+    materials:[], members:[], comments:[] };
+  const today = new Date();
+  const iso = (d)=> d.toISOString().slice(0,10);
+  const t = (days)=> { const d=new Date(); d.setDate(d.getDate()+days); return iso(d); };
+  return {
+    courses:[c1,c2],
+    tasks:[
+      {id:uid(), courseId:c1.id, title:'Esercizi su limiti notevoli', priority:'alta', dueDate:t(1), completed:false},
+      {id:uid(), courseId:c1.id, title:'Ripasso teoria derivate', priority:'media', dueDate:t(4), completed:false},
+      {id:uid(), courseId:c2.id, title:'Schema ER progetto', priority:'alta', dueDate:t(2), completed:false},
+      {id:uid(), courseId:c2.id, title:'Lettura capitolo 3', priority:'bassa', dueDate:t(-2), completed:true},
+    ],
+    pomodoroSessions:[
+      {id:uid(), date:t(-1), minutes:75, courseId:c1.id},
+      {id:uid(), date:t(-2), minutes:50, courseId:c2.id},
+      {id:uid(), date:t(-3), minutes:25, courseId:c1.id},
+      {id:uid(), date:t(0), minutes:25, courseId:c1.id},
+    ],
+    pomodoroSettings:{work:25, short:5, long:15, cycle:4}
+  };
+}
+
+/* ================= ROUTER ================= */
+const Router = {
+  go(view, param){
+    State.view = view;
+    if(view==='course') State.currentCourseId = param;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view || (view==='course' && n.dataset.view==='courses')));
+    const titles = {dashboard:['Dashboard','Il tuo riepilogo di studio'], courses:['Corsi','Gestisci corsi, lezioni e materiali'], planner:['Pianificazione','Task, priorità e calendario'], timer:['Timer di studio','Metodo Pomodoro'], profile:['Profilo','Gestisci il tuo account'], course:['','']};
+    if(view!=='course'){ document.getElementById('tb-title').textContent = titles[view][0]; document.getElementById('tb-sub').textContent = titles[view][1]; }
+    Views.render();
+  }
+};
+document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click', ()=>Router.go(n.dataset.view)));
+
+UI.renderShellUser = function(){
+  const u = State.currentUser;
+  document.getElementById('sb-avatar').textContent = u.avatarEmoji;
+  document.getElementById('sb-avatar').style.background = u.avatarColor+'22';
+  document.getElementById('tb-avatar').textContent = u.avatarEmoji;
+  document.getElementById('tb-avatar').style.background = u.avatarColor+'22';
+  document.getElementById('sb-name').textContent = u.name;
+  document.getElementById('sb-email').textContent = u.email;
+};
+
+/* ================= VIEWS ================= */
+const Views = { render(){
+  const c = document.getElementById('content');
+  if(State.view==='dashboard') c.innerHTML = Views.dashboard();
+  else if(State.view==='courses') c.innerHTML = Views.courses();
+  else if(State.view==='course') c.innerHTML = Views.courseDetail();
+  else if(State.view==='planner') c.innerHTML = Views.planner();
+  else if(State.view==='timer') c.innerHTML = Views.timer();
+  else if(State.view==='profile') c.innerHTML = Views.profile();
+  Views.afterRender();
+}};
+
+/* ---- DASHBOARD ---- */
+Views.dashboard = function(){
+  const tasks = State.data.tasks;
+  const done = tasks.filter(t=>t.completed).length;
+  const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+  const totalMin = State.data.pomodoroSessions.reduce((s,x)=>s+x.minutes,0);
+  const hrs = Math.floor(totalMin/60), mins = totalMin%60;
+  const upcoming = tasks.filter(t=>!t.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,5);
+  const courseById = id => State.data.courses.find(c=>c.id===id);
+
+  return `
+  <div class="kpi-grid">
+    <div class="card kpi"><div class="lbl">Completamento task</div><div class="val">${pct}%</div><div class="delta">${done}/${tasks.length} completati</div></div>
+    <div class="card kpi"><div class="lbl">Tempo totale studio</div><div class="val">${hrs}h ${mins}m</div><div class="delta">${State.data.pomodoroSessions.length} sessioni</div></div>
+    <div class="card kpi"><div class="lbl">Corsi attivi</div><div class="val">${State.data.courses.length}</div><div class="delta">in corso</div></div>
+    <div class="card kpi"><div class="lbl">Prossima scadenza</div><div class="val" style="font-size:16px;">${upcoming[0] ? fmtDate(upcoming[0].dueDate) : '—'}</div><div class="delta">${upcoming[0] ? upcoming[0].title : 'nessuna task'}</div></div>
+  </div>
+  <div class="dash-grid">
+    <div class="card chart-card">
+      <h4>Tempo di studio — ultimi 7 giorni</h4>
+      <canvas id="chart-week" height="150"></canvas>
+    </div>
+    <div class="card chart-card">
+      <h4>Completamento task</h4>
+      <canvas id="chart-donut" height="150"></canvas>
+    </div>
+  </div>
+  <div class="dash-grid">
+    <div class="card chart-card">
+      <h4>Prossime scadenze</h4>
+      ${upcoming.length ? upcoming.map(t=>{ const c=courseById(t.courseId); return `
+        <div class="deadline-row">
+          <div class="info"><span class="dot" style="background:${c?c.color:'#999'}"></span><div><div class="title">${esc(t.title)}</div><div class="meta">${c?esc(c.name):'—'}</div></div></div>
+          <span class="prio ${t.priority}">${t.priority}</span>
+        </div>`;}).join('') : `<div class="empty-state">Nessuna scadenza imminente 🎉</div>`}
+    </div>
+    <div class="card chart-card">
+      <h4>Costanza — ultimi 7 giorni</h4>
+      <div class="streak-strip">${last7Days().map(d=>{
+        const studied = State.data.pomodoroSessions.some(s=>s.date===d.iso);
+        return `<div class="streak-day ${studied?'active':''}" title="${d.iso}">${d.label}</div>`;
+      }).join('')}</div>
+      <p class="muted" style="font-size:12.5px;margin-top:14px;">Le celle evidenziate indicano un giorno in cui hai completato almeno una sessione Pomodoro.</p>
+    </div>
+  </div>`;
+};
+
+function last7Days(){
+  const out=[];
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); out.push({iso:d.toISOString().slice(0,10), label:['D','L','M','M','G','V','S'][d.getDay()]}); }
+  return out;
+}
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('it-IT',{day:'numeric',month:'short'}); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ---- COURSES ---- */
+Views.courses = function(){
+  const cs = State.data.courses;
+  return `
+  <div class="section-head"><h3>I tuoi corsi</h3><button class="btn btn-primary" onclick="Courses.openCreate()">+ Nuovo corso</button></div>
+  ${cs.length===0 ? `<div class="card empty-state"><div class="big">🎓</div>Non hai ancora nessun corso.<br>Crea il primo per iniziare a organizzare lezioni e materiali.</div>` : `
+  <div class="course-grid">${cs.map(c=>{
+    const cTasks = State.data.tasks.filter(t=>t.courseId===c.id);
+    const doneP = cTasks.length ? Math.round(cTasks.filter(t=>t.completed).length/cTasks.length*100) : 0;
+    return `
+    <div class="card course-card" onclick="Router.go('course','${c.id}')">
+      <div class="top" style="background:${c.color}"><span class="icon">${c.icon}</span><span class="name">${esc(c.name)}</span></div>
+      <div class="body">
+        <div class="row"><span>${c.lessons.length} lezioni</span><span>${cTasks.length} task</span></div>
+        <div class="row"><span>Completamento</span><span>${doneP}%</span></div>
+        ${c.members.length ? `<div class="members">${c.members.slice(0,4).map(m=>`<div class="m" title="${esc(m.name)}">${m.name.slice(0,1).toUpperCase()}</div>`).join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('')}</div>`}`;
+};
+
+const Courses = {
+  openCreate(){
+    openModal(`
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h3>Nuovo corso</h3>
+      <form onsubmit="return Courses.create(event)">
+        <div class="field"><label>Nome corso</label><input type="text" id="nc-name" required placeholder="Es. Fisica Generale"></div>
+        <div class="field"><label>Icona</label><div class="avatar-picker">${COURSE_ICONS.map(i=>`<div class="avatar-opt" data-icon="${i}" onclick="Courses.pickIcon(this)">${i}</div>`).join('')}</div></div>
+        <div class="field"><label>Colore</label><div class="color-picker">${COURSE_COLORS.map(col=>`<div class="color-opt" data-color="${col}" style="background:${col}" onclick="Courses.pickColor(this)"></div>`).join('')}</div></div>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Annulla</button><button class="btn btn-primary" type="submit">Crea corso</button></div>
+      </form>`);
+    Courses.pickIcon(document.querySelector('.avatar-opt'));
+    Courses.pickColor(document.querySelector('.color-opt'));
+  },
+  pickIcon(el){ document.querySelectorAll('.avatar-picker .avatar-opt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); },
+  pickColor(el){ document.querySelectorAll('.color-picker .color-opt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); },
+  async create(e){
+    e.preventDefault();
+    const name = document.getElementById('nc-name').value.trim();
+    const icon = document.querySelector('.avatar-picker .sel')?.dataset.icon || '📘';
+    const color = document.querySelector('.color-picker .sel')?.dataset.color || COURSE_COLORS[0];
+    State.data.courses.push({id:uid(), name, icon, color, lessons:[], materials:[], members:[], comments:[]});
+    await persist(); closeModal(); toast('Corso creato','success'); Router.go('courses');
+    return false;
+  },
+  async remove(id){
+    if(!confirm('Eliminare questo corso e tutte le sue task?')) return;
+    State.data.courses = State.data.courses.filter(c=>c.id!==id);
+    State.data.tasks = State.data.tasks.filter(t=>t.courseId!==id);
+    await persist(); toast('Corso eliminato'); Router.go('courses');
+  }
+};
+
+/* ---- COURSE DETAIL ---- */
+Views.courseDetail = function(){
+  const c = State.data.courses.find(c=>c.id===State.currentCourseId);
+  if(!c) return `<div class="empty-state">Corso non trovato.</div>`;
+  const cTasks = State.data.tasks.filter(t=>t.courseId===c.id);
+  return `
+  <button class="back-link" onclick="Router.go('courses')">← Torna ai corsi</button>
+  <div class="course-hero" style="background:${c.color}">
+    <div class="left"><span class="icon-lg">${c.icon}</span><div><h2>${esc(c.name)}</h2><div style="color:#fff;opacity:.85;font-size:13px;">${c.lessons.length} lezioni · ${c.materials.length} materiali · ${c.members.length} membri</div></div></div>
+    <button class="btn btn-danger" onclick="Courses.remove('${c.id}')">Elimina corso</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn ${State.courseTab==='lessons'?'active':''}" onclick="CourseDetail.tab('lessons')">Lezioni</button>
+    <button class="tab-btn ${State.courseTab==='materials'?'active':''}" onclick="CourseDetail.tab('materials')">Materiali</button>
+    <button class="tab-btn ${State.courseTab==='tasks'?'active':''}" onclick="CourseDetail.tab('tasks')">Task (${cTasks.length})</button>
+    <button class="tab-btn ${State.courseTab==='members'?'active':''}" onclick="CourseDetail.tab('members')">Membri</button>
+    <button class="tab-btn ${State.courseTab==='chat'?'active':''}" onclick="CourseDetail.tab('chat')">Chat</button>
+  </div>
+
+  <div class="tab-panel ${State.courseTab==='lessons'?'active':''}">
+    <div class="section-head"><h3>Lezioni</h3><button class="btn btn-sm btn-accent" onclick="CourseDetail.addLesson('${c.id}')">+ Aggiungi lezione</button></div>
+    ${c.lessons.length===0 ? `<div class="empty-state">Nessuna lezione aggiunta.</div>` : c.lessons.map(l=>`
+      <div class="list-item"><div class="l"><span>📖</span><div><div class="t">${esc(l.title)}</div><div class="m">${l.date?fmtDate(l.date):'senza data'}</div></div></div>
+      <button class="btn btn-icon btn-ghost" onclick="CourseDetail.removeLesson('${c.id}','${l.id}')">🗑</button></div>`).join('')}
+  </div>
+
+  <div class="tab-panel ${State.courseTab==='materials'?'active':''}">
+    <div class="section-head"><h3>Materiali</h3><button class="btn btn-sm btn-accent" onclick="CourseDetail.addMaterial('${c.id}')">+ Aggiungi materiale</button></div>
+    ${c.materials.length===0 ? `<div class="empty-state">Nessun materiale caricato.</div>` : c.materials.map(m=>`
+      <div class="list-item"><div class="l"><span>${m.type==='file'?'📎':'🔗'}</span><div><div class="t">${esc(m.title)}</div><div class="m">${m.type==='file'?'file caricato':esc(m.url||'')}</div></div></div>
+      <div style="display:flex;gap:6px;">${m.type==='link' && m.url ? `<a class="btn btn-sm btn-ghost" href="${esc(m.url)}" target="_blank" rel="noopener">Apri</a>`:''}<button class="btn btn-icon btn-ghost" onclick="CourseDetail.removeMaterial('${c.id}','${m.id}')">🗑</button></div></div>`).join('')}
+  </div>
+
+  <div class="tab-panel ${State.courseTab==='tasks'?'active':''}">
+    <div class="section-head"><h3>Task del corso</h3><button class="btn btn-sm btn-accent" onclick="Planner.openCreate('${c.id}')">+ Nuova task</button></div>
+    ${cTasks.length===0 ? `<div class="empty-state">Nessuna task per questo corso.</div>` : cTasks.map(t=>Planner.taskRowHtml(t)).join('')}
+  </div>
+
+  <div class="tab-panel ${State.courseTab==='members'?'active':''}">
+    <div class="section-head"><h3>Membri invitati</h3><button class="btn btn-sm btn-accent" onclick="CourseDetail.addMember('${c.id}')">+ Invita membro</button></div>
+    ${c.members.length===0 ? `<div class="empty-state">Nessun membro invitato. Il corso è visibile solo a te.</div>` : c.members.map(m=>`
+      <div class="list-item"><div class="l"><div class="avatar" style="background:${c.color}22;">${m.name.slice(0,1).toUpperCase()}</div><div><div class="t">${esc(m.name)}</div><div class="m">${esc(m.email)}</div></div></div>
+      <span class="pill" style="background:var(--forest-light);color:var(--forest-dark);">Invitato</span></div>`).join('')}
+  </div>
+
+  <div class="tab-panel ${State.courseTab==='chat'?'active':''}">
+    <div class="card" style="padding:18px;">
+      <div class="chat-box" id="chat-box">
+        ${c.comments.length===0 ? `<div class="empty-state" style="padding:20px;">Nessun messaggio ancora. Avvia la conversazione del corso.</div>` : c.comments.map(m=>`
+          <div class="msg"><div class="avatar" style="width:28px;height:28px;font-size:12px;background:${c.color}22;">${m.author.slice(0,1).toUpperCase()}</div>
+          <div><div class="author">${esc(m.author)}</div><div class="bubble">${esc(m.text)}</div><div class="time">${new Date(m.ts).toLocaleString('it-IT')}</div></div></div>`).join('')}
+      </div>
+      <div class="chat-input"><input type="text" id="chat-input" placeholder="Scrivi un messaggio al corso…" onkeydown="if(event.key==='Enter'){CourseDetail.sendMsg('${c.id}')}"><button class="btn btn-primary" onclick="CourseDetail.sendMsg('${c.id}')">Invia</button></div>
+    </div>
+  </div>`;
+};
+
+const CourseDetail = {
+  tab(name){ State.courseTab = name; Views.render(); },
+  async addLesson(courseId){
+    const title = prompt('Titolo della lezione:'); if(!title) return;
+    const date = prompt('Data (AAAA-MM-GG), lascia vuoto se non nota:') || '';
+    const c = State.data.courses.find(c=>c.id===courseId);
+    c.lessons.push({id:uid(), title, date});
+    await persist(); Views.render();
+  },
+  async removeLesson(courseId, lessonId){
+    const c = State.data.courses.find(c=>c.id===courseId);
+    c.lessons = c.lessons.filter(l=>l.id!==lessonId);
+    await persist(); Views.render();
+  },
+  addMaterial(courseId){
+    openModal(`
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h3>Aggiungi materiale</h3>
+      <form onsubmit="return CourseDetail.saveMaterial(event,'${courseId}')">
+        <div class="field"><label>Titolo</label><input type="text" id="mat-title" required placeholder="Es. Slide - Lezione 3"></div>
+        <div class="field"><label>Link (URL)</label><input type="text" id="mat-url" placeholder="https://…"></div>
+        <div class="field"><label>Oppure carica un file (PDF/immagine, max 500KB)</label><input type="file" id="mat-file" accept=".pdf,image/*"></div>
+        <div class="err" id="mat-err"></div>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Annulla</button><button class="btn btn-primary" type="submit">Salva</button></div>
+      </form>`);
+  },
+  async saveMaterial(e, courseId){
+    e.preventDefault();
+    const title = document.getElementById('mat-title').value.trim();
+    const url = document.getElementById('mat-url').value.trim();
+    const fileInput = document.getElementById('mat-file');
+    const c = State.data.courses.find(c=>c.id===courseId);
+    if(fileInput.files[0]){
+      const file = fileInput.files[0];
+      if(file.size > 500*1024){ document.getElementById('mat-err').textContent='File troppo grande (max 500KB in questa demo). Usa un link.'; return false; }
+      const dataUrl = await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); });
+      c.materials.push({id:uid(), title, type:'file', dataUrl});
+    } else if(url){
+      c.materials.push({id:uid(), title, type:'link', url});
+    } else {
+      document.getElementById('mat-err').textContent = 'Inserisci un link o carica un file.'; return false;
+    }
+    await persist(); closeModal(); Views.render(); toast('Materiale aggiunto','success');
+    return false;
+  },
+  async removeMaterial(courseId, matId){
+    const c = State.data.courses.find(c=>c.id===courseId);
+    c.materials = c.materials.filter(m=>m.id!==matId);
+    await persist(); Views.render();
+  },
+  addMember(courseId){
+    openModal(`
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h3>Invita membro al corso</h3>
+      <form onsubmit="return CourseDetail.saveMember(event,'${courseId}')">
+        <div class="field"><label>Nome</label><input type="text" id="mem-name" required></div>
+        <div class="field"><label>Email</label><input type="email" id="mem-email" required></div>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Annulla</button><button class="btn btn-primary" type="submit">Invita</button></div>
+      </form>`);
+  },
+  async saveMember(e, courseId){
+    e.preventDefault();
+    const name = document.getElementById('mem-name').value.trim();
+    const email = document.getElementById('mem-email').value.trim();
+    const c = State.data.courses.find(c=>c.id===courseId);
+    c.members.push({id:uid(), name, email});
+    await persist(); closeModal(); Views.render(); toast('Membro invitato','success');
+    return false;
+  },
+  async sendMsg(courseId){
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim(); if(!text) return;
+    const c = State.data.courses.find(c=>c.id===courseId);
+    c.comments.push({id:uid(), author:State.currentUser.name, text, ts:Date.now()});
+    await persist(); Views.render();
+    setTimeout(()=>{ const box=document.getElementById('chat-box'); if(box) box.scrollTop = box.scrollHeight; },0);
+  }
+};
+
+/* ---- PLANNER ---- */
+Views.planner = function(){
+  const f = State.plannerFilter;
+  let tasks = State.data.tasks.slice();
+  if(f.course!=='all') tasks = tasks.filter(t=>t.courseId===f.course);
+  if(f.status==='pending') tasks = tasks.filter(t=>!t.completed);
+  if(f.status==='done') tasks = tasks.filter(t=>t.completed);
+  tasks.sort((a,b)=> f.sort==='priority' ? prioRank(b.priority)-prioRank(a.priority) : a.dueDate.localeCompare(b.dueDate));
+
+  return `
+  <div class="section-head"><h3>Task e scadenze</h3><button class="btn btn-primary" onclick="Planner.openCreate()">+ Nuova task</button></div>
+  <div class="planner-toolbar">
+    <select onchange="Planner.setFilter('course', this.value)">
+      <option value="all">Tutti i corsi</option>
+      ${State.data.courses.map(c=>`<option value="${c.id}" ${f.course===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+    </select>
+    <select onchange="Planner.setFilter('status', this.value)">
+      <option value="all" ${f.status==='all'?'selected':''}>Tutte</option>
+      <option value="pending" ${f.status==='pending'?'selected':''}>Da fare</option>
+      <option value="done" ${f.status==='done'?'selected':''}>Completate</option>
+    </select>
+    <select onchange="Planner.setFilter('sort', this.value)">
+      <option value="due" ${f.sort==='due'?'selected':''}>Ordina per scadenza</option>
+      <option value="priority" ${f.sort==='priority'?'selected':''}>Ordina per priorità</option>
+    </select>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;">
+    <div>
+      ${tasks.length===0 ? `<div class="card empty-state">Nessuna task trovata.</div>` : tasks.map(t=>Planner.taskRowHtml(t)).join('')}
+    </div>
+    <div class="card" style="padding:18px;">
+      ${Views.calendar()}
+    </div>
+  </div>
+  `;
+};
+function prioRank(p){ return {alta:3,media:2,bassa:1}[p]||0; }
+
+const Planner = {
+  setFilter(k,v){ State.plannerFilter[k]=v; Views.render(); },
+  async toggle(id){ const t=State.data.tasks.find(t=>t.id===id); t.completed=!t.completed; await persist(); Views.render(); },
+  async remove(id){ State.data.tasks = State.data.tasks.filter(t=>t.id!==id); await persist(); Views.render(); },
+  openCreate(courseId){
+    openModal(`
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h3>Nuova task</h3>
+      <form onsubmit="return Planner.create(event)">
+        <div class="field"><label>Titolo</label><input type="text" id="nt-title" required></div>
+        <div class="field"><label>Corso</label><select id="nt-course">${State.data.courses.map(c=>`<option value="${c.id}" ${courseId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="field-row">
+          <div class="field"><label>Priorità</label><select id="nt-priority"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div>
+          <div class="field"><label>Scadenza</label><input type="date" id="nt-date" required></div>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Annulla</button><button class="btn btn-primary" type="submit">Crea task</button></div>
+      </form>`);
+    if(State.data.courses.length===0){ document.getElementById('nt-course').innerHTML = '<option value="">Nessun corso — creane uno prima</option>'; }
+  },
+  async create(e){
+    e.preventDefault();
+    const title = document.getElementById('nt-title').value.trim();
+    const courseId = document.getElementById('nt-course').value;
+    const priority = document.getElementById('nt-priority').value;
+    const dueDate = document.getElementById('nt-date').value;
+    if(!courseId){ toast('Crea prima un corso','error'); return false; }
+    State.data.tasks.push({id:uid(), courseId, title, priority, dueDate, completed:false});
+    await persist(); closeModal(); toast('Task creata','success'); Views.render();
+    return false;
+  }
+};
+
+Planner.taskRowHtml = function(t){
+  const c = State.data.courses.find(c=>c.id===t.courseId);
+  return `<div class="task-row ${t.completed?'done':''}">
+    <div class="check ${t.completed?'on':''}" onclick="Planner.toggle('${t.id}')">${t.completed?'✓':''}</div>
+    <div class="t">${esc(t.title)}</div>
+    <div class="meta">
+      <span class="pill" style="background:${c?c.color+'22':'#eee'};color:${c?c.color:'#666'};">${c?esc(c.name):'—'}</span>
+      <span class="mono muted" style="font-size:12px;">${fmtDate(t.dueDate)}</span>
+      <span class="prio ${t.priority}">${t.priority}</span>
+      <button class="btn btn-icon btn-ghost" onclick="Planner.remove('${t.id}')">🗑</button>
+    </div>
+  </div>`;
+};
+
+/* ---- CALENDAR (inside planner) ---- */
+Views.calendar = function(){
+  const y = State.calYear, m = State.calMonth;
+  const first = new Date(y,m,1);
+  const startOffset = (first.getDay()+6)%7; // Monday-first
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrev = new Date(y,m,0).getDate();
+  const monthName = first.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  const todayIso = new Date().toISOString().slice(0,10);
+  const cells = [];
+  for(let i=startOffset-1;i>=0;i--) cells.push({d:daysInPrev-i, other:true});
+  for(let d=1; d<=daysInMonth; d++) cells.push({d, other:false, iso:`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`});
+  while(cells.length % 7 !== 0) cells.push({d:cells.length, other:true});
+
+  return `
+  <div class="cal-nav">
+    <button class="btn btn-icon btn-ghost" onclick="CalendarUI.nav(-1)">←</button>
+    <h3 style="text-transform:capitalize;">${monthName}</h3>
+    <button class="btn btn-icon btn-ghost" onclick="CalendarUI.nav(1)">→</button>
+  </div>
+  <div id="calendar">
+    ${['L','M','M','G','V','S','D'].map(d=>`<div class="cal-head">${d}</div>`).join('')}
+    ${cells.map(c=>{
+      if(c.other) return `<div class="cal-cell other"><div class="dnum">${c.d}</div></div>`;
+      const dayTasks = State.data.tasks.filter(t=>t.dueDate===c.iso);
+      return `<div class="cal-cell ${c.iso===todayIso?'today':''}">
+        <div class="dnum">${c.d}</div>
+        ${dayTasks.slice(0,3).map(t=>`<span class="cal-tag" title="${esc(t.title)}" onclick="Planner.toggle('${t.id}')">${esc(t.title)}</span>`).join('')}
+        ${dayTasks.length>3?`<span class="muted" style="font-size:10px;">+${dayTasks.length-3} altro</span>`:''}
+      </div>`;
+    }).join('')}
+  </div>`;
+};
+const CalendarUI = { nav(dir){ let m=State.calMonth+dir, y=State.calYear; if(m<0){m=11;y--;} if(m>11){m=0;y++;} State.calMonth=m; State.calYear=y; Views.render(); } };
+
+/* ---- TIMER ---- */
+Views.timer = function(){
+  const s = State.data.pomodoroSettings;
+  const todayIso = new Date().toISOString().slice(0,10);
+  const todayMin = State.data.pomodoroSessions.filter(x=>x.date===todayIso).reduce((a,b)=>a+b.minutes,0);
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-6);
+  const weekMin = State.data.pomodoroSessions.filter(x=> new Date(x.date) >= new Date(weekStart.toISOString().slice(0,10))).reduce((a,b)=>a+b.minutes,0);
+  return `
+  <div class="timer-wrap">
+    <div class="card timer-card">
+      <div class="ring-wrap">
+        <svg width="260" height="260" viewBox="0 0 260 260">
+          <circle class="ring-track" cx="130" cy="130" r="112"></circle>
+          <circle class="ring-prog" id="ring-prog" cx="130" cy="130" r="112" stroke-dasharray="703.7" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="time mono" id="timer-display">25:00</div>
+          <div class="phase" id="timer-phase">Focus</div>
+        </div>
+      </div>
+      <div class="field" style="width:100%;max-width:260px;margin-top:20px;">
+        <label>Corso collegato (opzionale)</label>
+        <select id="timer-course" onchange="Timer.setCourse(this.value)">
+          <option value="">Nessuno</option>
+          ${State.data.courses.map(c=>`<option value="${c.id}" ${State.timer.linkedCourse===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="timer-controls">
+        <button class="btn btn-primary" id="timer-toggle" onclick="Timer.toggle()">▶ Avvia</button>
+        <button class="btn btn-ghost" onclick="Timer.reset()">↺ Reset</button>
+        <button class="btn btn-ghost" onclick="Timer.skip()">⏭ Salta fase</button>
+      </div>
+    </div>
+    <div class="card timer-settings">
+      <h4>Impostazioni sessione</h4>
+      <div class="field-row">
+        <div class="field"><label>Focus (min)</label><input type="number" id="set-work" value="${s.work}" min="5" max="90"></div>
+        <div class="field"><label>Pausa breve (min)</label><input type="number" id="set-short" value="${s.short}" min="1" max="30"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Pausa lunga (min)</label><input type="number" id="set-long" value="${s.long}" min="5" max="60"></div>
+        <div class="field"><label>Cicli prima di pausa lunga</label><input type="number" id="set-cycle" value="${s.cycle}" min="2" max="8"></div>
+      </div>
+      <button class="btn btn-accent" style="width:100%" onclick="Timer.saveSettings()">Salva impostazioni</button>
+      <div class="divider"></div>
+      <h4>Statistiche</h4>
+      <div class="stat-mini"><span>Oggi</span><b>${todayMin} min</b></div>
+      <div class="stat-mini"><span>Ultimi 7 giorni</span><b>${weekMin} min</b></div>
+      <div class="stat-mini"><span>Sessioni completate (totale)</span><b>${State.data.pomodoroSessions.length}</b></div>
+      <div class="stat-mini"><span>Cicli focus completati oggi</span><b>${State.timer.sessionsDone}</b></div>
+    </div>
+  </div>`;
+};
+
+function resetTimerFromSettings(){
+  const s = State.data.pomodoroSettings;
+  State.timer.phase = 'work';
+  State.timer.total = s.work*60;
+  State.timer.remaining = s.work*60;
+  State.timer.running = false;
+  if(State.timer.interval){ clearInterval(State.timer.interval); State.timer.interval=null; }
+}
+
+const Timer = {
+  setCourse(v){ State.timer.linkedCourse = v; },
+  toggle(){
+    if(State.timer.running){ this.pause(); } else { this.start(); }
+  },
+  start(){
+    State.timer.running = true;
+    updateTimerBtn();
+    State.timer.interval = setInterval(()=>{
+      State.timer.remaining--;
+      if(State.timer.remaining <= 0){ Timer.completePhase(); return; }
+      updateTimerDisplay();
+    },1000);
+  },
+  pause(){
+    State.timer.running = false;
+    if(State.timer.interval) clearInterval(State.timer.interval);
+    updateTimerBtn();
+  },
+  reset(){ this.pause(); resetTimerFromSettings(); updateTimerDisplay(); updateTimerBtn(); },
+  skip(){ this.completePhase(true); },
+  async completePhase(skip){
+    const s = State.data.pomodoroSettings;
+    if(State.timer.phase==='work'){
+      if(!skip){
+        const todayIso = new Date().toISOString().slice(0,10);
+        State.data.pomodoroSessions.push({id:uid(), date:todayIso, minutes:s.work, courseId: State.timer.linkedCourse||null});
+        await persist();
+        State.timer.sessionsDone++;
+        toast('Sessione di focus completata! 🎉','success');
+      }
+      const isLong = State.timer.sessionsDone>0 && State.timer.sessionsDone % s.cycle === 0;
+      State.timer.phase = isLong ? 'long' : 'short';
+      State.timer.total = (isLong? s.long : s.short)*60;
+    } else {
+      State.timer.phase = 'work';
+      State.timer.total = s.work*60;
+    }
+    State.timer.remaining = State.timer.total;
+    if(!State.timer.running){ /* keep paused state */ }
+    updateTimerDisplay(); Views.render(); updateTimerBtn();
+  },
+  saveSettings(){
+    const work = +document.getElementById('set-work').value || 25;
+    const short = +document.getElementById('set-short').value || 5;
+    const long = +document.getElementById('set-long').value || 15;
+    const cycle = +document.getElementById('set-cycle').value || 4;
+    State.data.pomodoroSettings = {work,short,long,cycle};
+    persist();
+    resetTimerFromSettings();
+    Views.render();
+    toast('Impostazioni salvate','success');
+  }
+};
+
+function updateTimerDisplay(){
+  const disp = document.getElementById('timer-display');
+  const phaseEl = document.getElementById('timer-phase');
+  const ring = document.getElementById('ring-prog');
+  if(!disp) return;
+  const m = Math.floor(State.timer.remaining/60), s = State.timer.remaining%60;
+  disp.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  phaseEl.textContent = {work:'Focus', short:'Pausa breve', long:'Pausa lunga'}[State.timer.phase];
+  const circumference = 2*Math.PI*112;
+  const frac = 1 - (State.timer.remaining / State.timer.total);
+  if(ring) ring.style.strokeDashoffset = circumference*frac;
+}
+function updateTimerBtn(){
+  const btn = document.getElementById('timer-toggle');
+  if(btn) btn.innerHTML = State.timer.running ? '⏸ Pausa' : '▶ Avvia';
+}
+
+/* ---- PROFILE ---- */
+Views.profile = function(){
+  const u = State.currentUser;
+  return `
+  <div class="profile-grid">
+    <div class="card" style="padding:24px;">
+      <h3 style="margin-top:0;">Il tuo profilo</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+        <div class="avatar" style="width:56px;height:56px;font-size:26px;background:${u.avatarColor}22;">${u.avatarEmoji}</div>
+        <div><b>${esc(u.name)}</b><div class="muted" style="font-size:13px;">${esc(u.email)}</div></div>
+      </div>
+      <div class="field"><label>Emoji avatar</label><div class="avatar-picker">${AVATARS.map(a=>`<div class="avatar-opt ${u.avatarEmoji===a?'sel':''}" onclick="Profile.pickAvatar('${a}')">${a}</div>`).join('')}</div></div>
+      <div class="field"><label>Colore avatar</label><div class="color-picker">${COURSE_COLORS.map(c=>`<div class="color-opt ${u.avatarColor===c?'sel':''}" style="background:${c}" onclick="Profile.pickColor('${c}')"></div>`).join('')}</div></div>
+    </div>
+    <div class="card" style="padding:24px;">
+      <h3 style="margin-top:0;">Dati personali</h3>
+      <form onsubmit="return Profile.save(event)">
+        <div class="field"><label>Nome e cognome</label><input type="text" id="pf-name" value="${esc(u.name)}" required></div>
+        <div class="field"><label>Email</label><input type="email" id="pf-email" value="${esc(u.email)}" required></div>
+        <button class="btn btn-primary" type="submit">Salva modifiche</button>
+      </form>
+      <div class="divider"></div>
+      <h4>Salvataggio dati</h4>
+      <p class="muted" style="font-size:13px;">I tuoi dati (corsi, task, sessioni) sono salvati nella memoria locale (<span class="mono">localStorage</span>) di questo browser, su questo computer. Se cambi browser o dispositivo non li ritroverai; usa lo stesso browser per continuare da dove hai lasciato.</p>
+      <div class="divider"></div>
+      <h4>Sicurezza sessione</h4>
+      <p class="muted" style="font-size:13px;">Sessione autenticata tramite token con scadenza 24h, rinnovato automaticamente ad ogni attività (refresh token simulato).</p>
+      <p class="mono muted" style="font-size:11.5px;word-break:break-all;">Token: ${State.auth.session.token.slice(0,60)}…</p>
+      <div class="divider"></div>
+      <button class="btn btn-danger" onclick="Profile.resetData()">Ripristina dati demo</button>
+    </div>
+  </div>`;
+};
+const Profile = {
+  async pickAvatar(a){ State.currentUser.avatarEmoji=a; const u=State.currentUser; const idx=State.auth.users.findIndex(x=>x.id===u.id); State.auth.users[idx]=u; await Store.set('studyhub-auth',State.auth); UI.renderShellUser(); Views.render(); },
+  async pickColor(c){ State.currentUser.avatarColor=c; const u=State.currentUser; const idx=State.auth.users.findIndex(x=>x.id===u.id); State.auth.users[idx]=u; await Store.set('studyhub-auth',State.auth); UI.renderShellUser(); Views.render(); },
+  async save(e){
+    e.preventDefault();
+    State.currentUser.name = document.getElementById('pf-name').value.trim();
+    State.currentUser.email = document.getElementById('pf-email').value.trim().toLowerCase();
+    const idx = State.auth.users.findIndex(x=>x.id===State.currentUser.id);
+    State.auth.users[idx] = State.currentUser;
+    await Store.set('studyhub-auth', State.auth);
+    UI.renderShellUser();
+    toast('Profilo aggiornato','success');
+    return false;
+  },
+  async resetData(){
+    if(!confirm('Questo cancellerà corsi, task e statistiche del tuo account. Continuare?')) return;
+    State.data = { courses:[], tasks:[], pomodoroSessions:[], pomodoroSettings:{work:25,short:5,long:15,cycle:4} };
+    await persist();
+    resetTimerFromSettings();
+    toast('Dati ripristinati');
+    Router.go('dashboard');
+  }
+};
+
+/* ---- CHARTS ---- */
+let chartWeek=null, chartDonut=null;
+Views.afterRender = function(){
+  if(document.getElementById('chart-week')){
+    const days = last7Days();
+    const minutesByDay = days.map(d=> State.data.pomodoroSessions.filter(s=>s.date===d.iso).reduce((a,b)=>a+b.minutes,0));
+    const labels = days.map(d=>d.label);
+    if(chartWeek) chartWeek.destroy();
+    chartWeek = new Chart(document.getElementById('chart-week'), {
+      type:'bar',
+      data:{ labels, datasets:[{ data:minutesByDay, backgroundColor:'#E8A33D', borderRadius:6, maxBarThickness:34 }] },
+      options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:30}, grid:{color:'#EFEAE0'} }, x:{grid:{display:false}} } }
+    });
+  }
+  if(document.getElementById('chart-donut')){
+    const done = State.data.tasks.filter(t=>t.completed).length;
+    const pending = State.data.tasks.length - done;
+    if(chartDonut) chartDonut.destroy();
+    chartDonut = new Chart(document.getElementById('chart-donut'), {
+      type:'doughnut',
+      data:{ labels:['Completate','Da fare'], datasets:[{ data:[done, pending||0], backgroundColor:['#2F5233','#E4DFD3'], borderWidth:0 }]},
+      options:{ cutout:'70%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } } }
+    });
+  }
+  if(document.getElementById('timer-display')){ updateTimerDisplay(); updateTimerBtn(); }
+};
+
+/* ================= INIT ================= */
+Boot.init();
+</script>
+</body>
+</html>
