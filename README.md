@@ -22,57 +22,74 @@ Poi apri <http://localhost:8000>.
 Nella schermata di accesso il pulsante **"Prova l'account demo"** crea un utente
 con corsi, task e statistiche di esempio.
 
+## Avvio con Docker
+
+In alternativa il progetto può essere eseguito in un container, servito da Nginx:
+
+```bash
+docker compose up --build
+```
+
+L'app sarà disponibile su <http://localhost:8080>. Per fermarla:
+
+```bash
+docker compose down
+```
+
+La containerizzazione rende l'esecuzione riproducibile su qualsiasi macchina
+dotata di Docker, indipendentemente dal sistema operativo e dalle dipendenze
+installate localmente.
+
 ## Pubblicazione su GitHub Pages
 
-1. Carica il progetto su un repository GitHub.
-2. *Settings → Pages → Build and deployment → Source: Deploy from a branch*.
-3. Scegli il branch `main` e la cartella `/ (root)`, poi **Save**.
+1. *Settings → Pages → Build and deployment → Source: Deploy from a branch*.
+2. Scegli il branch `main` e la cartella `/ (root)`, poi **Save**.
 
 ## Struttura del progetto
-
-```
 studyhub/
-├── index.html              # solo markup: guscio dell'app, form, modale
+├── index.html # solo markup: guscio dell'app, form, modale
+├── Dockerfile # containerizzazione dell'app
+├── docker-compose.yml # avvio rapido del container
+├── nginx.conf # configurazione del web server nel container
 ├── css/
-│   ├── base.css            # variabili di tema, reset, tipografia, utility
-│   ├── components.css      # bottoni, card, form, avatar, toast, modale
-│   ├── layout.css          # sidebar, topbar, area contenuto
-│   ├── auth.css            # schermata di accesso
-│   └── views/
-│       ├── dashboard.css
-│       ├── courses.css     # griglia corsi + dettaglio corso
-│       ├── planner.css     # task e calendario
-│       ├── timer.css
-│       └── profile.css
+│ ├── base.css # variabili di tema, reset, tipografia, utility
+│ ├── components.css # bottoni, card, form, avatar, toast, modale
+│ ├── layout.css # sidebar, topbar, area contenuto
+│ ├── auth.css # schermata di accesso
+│ └── views/
+│ ├── dashboard.css
+│ ├── courses.css # griglia corsi + dettaglio corso
+│ ├── planner.css # task e calendario
+│ ├── timer.css
+│ └── profile.css
 └── js/
-    ├── main.js             # entry point: espone i globali, avvia l'app
-    ├── core/
-    │   ├── constants.js    # avatar, colori e icone disponibili
-    │   ├── state.js        # stato applicativo condiviso
-    │   ├── store.js        # livello di persistenza
-    │   ├── utils.js        # uid, esc, formattazione date…
-    │   ├── toast.js        # notifiche temporanee
-    │   ├── modal.js        # finestra modale generica
-    │   ├── ui.js           # tab di autenticazione, blocco utente
-    │   └── router.js       # navigazione tra le viste
-    ├── auth/
-    │   ├── session.js      # hashing, token, refresh
-    │   └── auth.js         # login, registrazione, reset, logout
-    ├── data/
-    │   ├── boot.js         # avvio e caricamento dati utente
-    │   ├── persist.js      # salvataggio
-    │   └── seed.js         # dati demo
-    └── views/
-        ├── render.js       # dispatcher delle viste
-        ├── dashboard.js
-        ├── charts.js       # grafici Chart.js
-        ├── courses.js
-        ├── courseDetail.js
-        ├── planner.js
-        ├── calendar.js
-        ├── timer.js
-        └── profile.js
-```
+├── main.js # entry point: espone i globali, avvia l'app
+├── core/
+│ ├── constants.js # avatar, colori e icone disponibili
+│ ├── state.js # stato applicativo condiviso
+│ ├── store.js # livello di persistenza
+│ ├── utils.js # uid, esc, formattazione date…
+│ ├── toast.js # notifiche temporanee
+│ ├── modal.js # finestra modale generica
+│ ├── ui.js # tab di autenticazione, blocco utente
+│ └── router.js # navigazione tra le viste
+├── auth/
+│ ├── session.js # hashing, token, refresh
+│ └── auth.js # login, registrazione, reset, logout
+├── data/
+│ ├── boot.js # avvio e caricamento dati utente
+│ ├── persist.js # salvataggio
+│ └── seed.js # dati demo
+└── views/
+├── render.js # dispatcher delle viste
+├── dashboard.js
+├── charts.js # grafici Chart.js
+├── courses.js
+├── courseDetail.js
+├── planner.js
+├── calendar.js
+├── timer.js
+└── profile.js
 
 ## Come sono collegati i pezzi
 
@@ -92,11 +109,14 @@ studyhub/
 
 Questa è una demo interamente lato client:
 
-- `core/store.js` usa `window.storage` se l'ambiente lo espone; altrove i dati
-  restano solo in memoria e si perdono al ricaricamento della pagina. Per
-  renderli persistenti basta aggiungere un fallback su `localStorage`.
 - `auth/session.js` usa un hash giocattolo e un token non firmato: va bene per
   una demo, non per un'applicazione reale. In produzione servono autenticazione
   lato server, hashing con bcrypt/argon2 e JWT firmati.
 - Chat e membri dei corsi sono locali al singolo browser: non c'è backend né
   sincronizzazione tra utenti.
+- I dati sono salvati in `localStorage`, quindi restano sul dispositivo e non
+  seguono l'utente su un altro browser.
+
+## Licenza
+
+Distribuito con licenza MIT. Vedi il file `LICENSE`.
