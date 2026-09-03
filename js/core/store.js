@@ -1,8 +1,8 @@
 /* ==========================================================================
    core/store.js — livello di persistenza
 
-   Usa window.storage se l'ambiente lo espone; altrimenti ricade su una
-   copia in memoria (i dati vivono solo per la durata della pagina).
+   Usa window.storage se l'ambiente lo espone; in un browser normale ricade
+   su localStorage, così i dati sopravvivono al ricaricamento della pagina.
    ========================================================================== */
 
 export const Store = {
@@ -13,7 +13,12 @@ export const Store = {
       const r = await window.storage.get(key, false);
       return r ? JSON.parse(r.value) : null;
     }catch(e){
-      return this.mem[key] ?? null;
+      try{
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      }catch(e2){
+        return this.mem[key] ?? null;
+      }
     }
   },
 
@@ -22,7 +27,11 @@ export const Store = {
     try{
       await window.storage.set(key, JSON.stringify(value), false);
     }catch(e){
-      console.warn('storage set failed, kept in memory only', e);
+      try{
+        localStorage.setItem(key, JSON.stringify(value));
+      }catch(e2){
+        console.warn('storage non disponibile, dati solo in memoria', e2);
+      }
     }
   }
 };
