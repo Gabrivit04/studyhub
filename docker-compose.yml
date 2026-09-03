@@ -1,0 +1,7 @@
+services:
+  studyhub:
+    build: .
+    container_name: studyhub
+    ports:
+      - "8080:80"
+    restart: unless-stopped
